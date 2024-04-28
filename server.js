@@ -1,7 +1,7 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const mysql = require('mysql');
+//const mysql = require('mysql');
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
@@ -13,12 +13,12 @@ const io = socketIo(server);
 const PORT = process.env.PORT || 3000;
 
 // MySQL connection configuration
-const dbConfig = {
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'hospitaldata'
-};
+// const dbConfig = {
+//     host: 'localhost',
+//     user: 'root',
+//     password: '',
+//     database: 'hospitaldata'
+// };
 
 // MongoDB connection configuration
 const mongoConfig = {
@@ -29,20 +29,20 @@ const mongoConfig = {
 
 let clients = {};
 // Create a MySQL connection
-const connection = mysql.createConnection(dbConfig);
+//const connection = mysql.createConnection(dbConfig);
 
 // Connect to MySQL
-connection.connect((err) => {
-    if (err) {
-        console.error('Error connecting to MySQL:', err);
-        return;
-    }
-    console.log('Connected to MySQL database');
-});
+// connection.connect((err) => {
+//     if (err) {
+//         console.error('Error connecting to MySQL:', err);
+//         return;
+//     }
+//     console.log('Connected to MySQL database');
+// });
 
 // Establish MongoDB connection 
 try {
-    mongoose.connect('mongodb://localhost:27017/hospitalData');
+    mongoose.connect('mongodb+srv://someshbhosale2:somesh@cluster0.atanct9.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0');
     console.log('Connected to MongoDB');
 } catch (error) {
     console.error('Error connecting to MongoDB:', error);
@@ -72,31 +72,31 @@ io.on('connection', (socket) => {
     });
 
     // Listen for synchronization button click
-    socket.on('syncData', () => {
-        console.log('Inside syncData event listener'); // This line should be printed
-        // Query to fetch data from MySQL
-        const query = 'SELECT * FROM data';
+    // socket.on('syncData', () => {
+    //     console.log('Inside syncData event listener'); // This line should be printed
+    //     // Query to fetch data from MySQL
+    //     const query = 'SELECT * FROM data';
 
-        // Execute the query
-        connection.query(query, (err, results) => {
-            if (err) {
-                console.error('Error retrieving data from MySQL:', err);
-                return;
-            }
-            const startTime = Date.now();
-            // Extract data from results
-            const data = results.map(row => row.message);
-            // Emit data to all clients
-            console.log('Synchronization data:', data);
-            io.emit('syncData', data);
-            const endTime = Date.now();
-            const syncTime = endTime - startTime;
-            console.log('Synchronization time from MySql:', syncTime, 'ms');
+    //     // Execute the query
+    //     connection.query(query, (err, results) => {
+    //         if (err) {
+    //             console.error('Error retrieving data from MySQL:', err);
+    //             return;
+    //         }
+    //         const startTime = Date.now();
+    //         // Extract data from results
+    //         const data = results.map(row => row.message);
+    //         // Emit data to all clients
+    //         console.log('Synchronization data:', data);
+    //         io.emit('syncData', data);
+    //         const endTime = Date.now();
+    //         const syncTime = endTime - startTime;
+    //         console.log('Synchronization time from MySql:', syncTime, 'ms');
 
-            // Send synchronization time back to the host
-            io.to(socket.id).emit('syncTime', syncTime);
-        });
-    });
+    //         // Send synchronization time back to the host
+    //         io.to(socket.id).emit('syncTime', syncTime);
+    //     });
+    // });
 
 
 
