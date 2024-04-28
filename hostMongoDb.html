@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host | MongoDB</title>
+    <link rel="icon" href="/static/assests/logo.png" type="image/icon type">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9) url('/static/assests/bgimg.jpg') no-repeat center center fixed;
+            background-size: cover;
+        }
+
+        .form-container {
+            max-width: 100%; /* Adjusted for responsiveness */
+            margin: auto;
+            padding: 0 20px; /* Adjusted padding for responsiveness */
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-8 form-container">
+                <!-- Synchronize button for MongoDB -->
+                <div class="card mt-3">
+                    <div class="card-header">Synchronize Data with Clients (MongoDB)</div>
+                    <div class="card-body">
+                        <button id="syncButtonMongo" class="btn btn-primary">Synchronize (MongoDB)</button>
+                        <p id="syncTimeDisplayMongo">Synchronization Time: <span id="syncTimeMongo">0</span> ms</p>
+                    </div>
+                </div>
+
+                <!-- Connected Clients -->
+                <div class="card mt-3">
+                    <div class="card-header">Connected Clients</div>
+                    <div class="card-body">
+                        <p>Total Clients Connected: <span id="clientCount">0</span></p>
+                        <ul id="clientList"></ul>
+                    </div>
+                </div>
+
+                <!-- Synchronization Time vs Number of Clients -->
+                <div class="card mt-3">
+                    <div class="card-header">Synchronization Time vs Number of Clients</div>
+                    <div class="card-body">
+                        <canvas id="syncTimeVsClientsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link directly to the Socket.IO CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.2.0/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            const socket = io();
+
+            // Initialize chart for synchronization time vs number of clients
+            const syncTimeVsClientsChart = new Chart($('#syncTimeVsClientsChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Synchronization Time (ms)',
+                        data: [],
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        xAxes: [{
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Number of Clients'
+                            }
+                        }],
+                        yAxes: [{
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Time (ms)'
+                            }
+                        }]
+                    }
+                }
+            });
+
+            // Function to update client count and list
+            function updateClientInfo(clients) {
+                console.log("Updating client info:", clients);
+                // Display total number of clients
+                $('#clientCount').text(clients.length);
+                // Display list of clients
+                $('#clientList').empty();
+                clients.forEach(client => {
+                    $('#clientList').append(`<li>${client.ip}</li>`);
+                });
+            }
+
+            // Event listener for synchronization button for MongoDB
+            $('#syncButtonMongo').click(function () {
+                console.log('Button clicked - emitting syncDataMongo event');
+                // Emit an event to synchronize data with clients from MongoDB
+                socket.emit('syncDataMongo');
+            });
+
+            // Listen for synchronization time from the server (MongoDB)
+            socket.on('syncTimeMongo', function (syncTime) {
+                console.log('inside syncTimeMongo');
+                // Display synchronization time for MongoDB
+                $('#syncTimeMongo').text(syncTime.toFixed(5));
+                // Update syncTimeVsClientsChart with synchronization time for MongoDB
+                updateSyncTimeVsClientsChart(syncTime);
+            });
+
+            // Listen for client list updates
+            socket.on('clients', function (clients) {
+                console.log('Received clients event:', clients);
+                // Update client information in UI
+                updateClientInfo(clients);
+            });
+
+            // Function to update syncTimeVsClientsChart with the new synchronization time
+            function updateSyncTimeVsClientsChart(syncTime) {
+                const numClients = $('#clientCount').text(); // Get the current number of clients
+                syncTimeVsClientsChart.data.labels.push(numClients);
+                syncTimeVsClientsChart.data.datasets[0].data.push(syncTime);
+                syncTimeVsClientsChart.update();
+            }
+        });
+    </script>
+</body>
+</html>
