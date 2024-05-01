@@ -1,0 +1,19 @@
+1. Download and install the node js version = 20.12.2
+
+2. Open the project directory in terminal and type cmd "npm install"
+
+3. Download and install mongoDB compass
+
+4. Create a new database namely "hospitalData"(use same name) and in that database create a collection namely "datas". 
+
+5. Download and install xamp server and create a new database in mysql namely "hospitaldata" and in that database create a table namely "data"
+
+6. Import "mongoData.json" file in mongodb and "sqlData.sql" in mySQl database.
+
+7. Start the server by typing "node server.js" in project directory path in terminal
+
+8. To open the host open "index.html"
+
+9. To open the client link should be "ipaddress:3000/client". 
+
+Note : to find the Ip Address type "ipconfig" in cmd and copy the ipv4 address.

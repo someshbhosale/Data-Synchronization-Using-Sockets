@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Host | MySQL</title>
-    <link rel="icon" href="/static/assests/logo.png" type="image/icon type">
+    
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
         body {
             padding: 20px;
-            background: rgba(255, 255, 255, 0.9) url('/static/assests/bgimg.jpg') no-repeat center center fixed;
+            background: rgba(235, 233, 233, 0.9)  no-repeat center center fixed;
             background-size: cover;
         }
 
@@ -23,6 +23,20 @@
             max-width: 100%;
             height: auto;
         }
+        p{
+            font-size: 22px;
+            font-style: bold;
+        }
+        ul{
+            font-size: 18px;
+        }
+        .card-header{
+            font-size: 25px;
+            font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+        }
+        .progress {
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -31,10 +45,15 @@
             <div class="col-md-8 form-container">
                 <!-- Synchronize button -->
                 <div class="card mt-3">
-                    <div class="card-header">Synchronize Data with Clients</div>
+                    <div class="card-header">Synchronize Data with Clients(MySQL)</div>
                     <div class="card-body">
                         <button id="syncButton" class="btn btn-primary">Synchronize</button>
-                        <p id="syncTimeDisplay">Synchronization Time: <span id="syncTime">0</span> ms</p>
+                        <p id="syncTimeDisplay">Synchronization Time:<b> <span id="syncTime">0</span> ms</b></p>
+                        <p id="syncSpeedDisplay">Synchronization Speed:<b> <span id="syncSpeed">0</span> bytes/s</b></p>
+                        <p id="dataSizeDisplay">Data Size:<b> <span id="dataSize">0</span> kb</b></p>
+                        <div class="progress">
+                            <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -42,7 +61,7 @@
                 <div class="card mt-3">
                     <div class="card-header">Connected Clients</div>
                     <div class="card-body">
-                        <p>Total Clients Connected: <span id="clientCount">0</span></p>
+                        <p>Total Clients Connected:<b> <span id="clientCount">0</span></b></p>
                         <ul id="clientList"></ul>
                     </div>
                 </div>
@@ -125,6 +144,13 @@
                 $('#syncTime').text(syncTime.toFixed(5));
                 // Update syncTimeVsClientsChart with synchronization time
                 updateSyncTimeVsClientsChart(syncTime);
+                // Update progress bar
+                updateProgressBar(syncTime);
+            });
+
+            socket.on('dataSize', function (syncSpeed) {
+                // Display synchronization speed
+                $('#dataSize').text(syncSpeed.toFixed(2));
             });
 
             // Listen for client list updates
@@ -134,6 +160,12 @@
                 updateClientInfo(clients);
             });
 
+            // Listen for synchronization speed from the server
+            socket.on('syncSpeed', function (syncSpeed) {
+                // Display synchronization speed
+                $('#syncSpeed').text(syncSpeed.toFixed(2));
+            });
+
             // Function to update syncTimeVsClientsChart with the new synchronization time
             function updateSyncTimeVsClientsChart(syncTime) {
                 const numClients = $('#clientCount').text(); // Get the current number of clients
@@ -141,6 +173,20 @@
                 syncTimeVsClientsChart.data.datasets[0].data.push(syncTime);
                 syncTimeVsClientsChart.update();
             }
+
+            // Function to update progress bar based on synchronization time
+            function updateProgressBar(syncTime) {
+                // Show progress bar
+                $('#progressBarContainer').show();
+                // Set progress bar width to 100%
+                $('#progressBar').css('width', '100%');
+                // Set aria-valuenow attribute to 100 for screen readers
+                //$('#progressBar').attr('aria-valuenow', 100);
+                     
+                
+            }
+
+            
         });
     </script>
 </body>

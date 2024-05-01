@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client | MongoDB</title>
-    <link rel="icon" href="/static/assests/logo.png" type="image/icon type">
+    <title>Client</title>
+    
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
         .data-card {
@@ -20,7 +20,7 @@
         }
         body {
             padding: 20px;
-            background: rgba(255, 255, 255, 0.9) url('/static/assests/bgimg.jpg') no-repeat center center fixed;
+            background: rgba(235, 233, 233, 0.9) no-repeat center center fixed;
             background-size: cover;
         }
 
@@ -35,7 +35,7 @@
         <div class="row justify-content-center">
             <div class="col-md-8">
                 <div class="container">
-                    <h4 class="text-center">Received Data from Server</h4>
+                    <h4 class="text-center">Realtime Synchronized Data from Server</h4>
                     <div id="messageContainer"></div>
                 </div>
             </div>
@@ -54,12 +54,41 @@
             }
 
             // Listen for incoming messages from the server
+        socket.on('syncData', function (data) {
+            console.log('Received syncedData:', data); // Log the received data
+            // Append each message to the message container
+            data.forEach(message => {
+                const messageContainer = $('#messageContainer');
+                    const messageCard = $('<div class="data-card"></div>');
+
+                    // Iterate over each key-value pair in the message object
+                    Object.keys(message).forEach(key => {
+                        const keyValueElement = $('<p></p>').text(`${key}: ${message[key]}`);
+                        messageCard.append(keyValueElement);
+                        messageContainer.append(messageCard);
+                    });
+            });
+        });
+
+            // Listen for incoming messages from the server
             socket.on('syncDataMongo', function (data) {
                 console.log('Received syncedDataMongo:', data); // Log the received data
                 // Append each message to the message container
                 data.forEach(message => {
-                    appendMessage(message);
+                    const messageContainer = $('#messageContainer');
+                    const messageCard = $('<div class="data-card"></div>');
+
+                    // Iterate over each key-value pair in the message object
+                    Object.keys(message).forEach(key => {
+                        const keyValueElement = $('<p></p>').text(`${key}: ${message[key]}`);
+                        messageCard.append(keyValueElement);
+                        messageContainer.append(messageCard);
+                    });
                 });
+            });
+
+            socket.on('message', function (message) {
+                appendMessage(message);
             });
         });
     </script>

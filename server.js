@@ -1,7 +1,7 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-//const mysql = require('mysql');
+const mysql = require('mysql');
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
@@ -13,47 +13,46 @@ const io = socketIo(server);
 const PORT = process.env.PORT || 3000;
 
 // MySQL connection configuration
-// const dbConfig = {
-//     host: 'localhost',
-//     user: 'root',
-//     password: '',
-//     database: 'hospitaldata'
-// };
-
-// MongoDB connection configuration
-const mongoConfig = {
-    url: 'mongodb://localhost:27017',
-    dbName: 'hospitalData',
-    collectionName: 'datas'
+const dbConfig = {
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'hospitaldata'
 };
 
 let clients = {};
 // Create a MySQL connection
-//const connection = mysql.createConnection(dbConfig);
+const connection = mysql.createConnection(dbConfig);
 
 // Connect to MySQL
-// connection.connect((err) => {
-//     if (err) {
-//         console.error('Error connecting to MySQL:', err);
-//         return;
-//     }
-//     console.log('Connected to MySQL database');
-// });
+connection.connect((err) => {
+    if (err) {
+        console.error('Error connecting to MySQL:', err);
+        return;
+    }
+    console.log('Connected to MySQL database');
+});
 
 // Establish MongoDB connection 
 try {
-    mongoose.connect('mongodb+srv://someshbhosale2:somesh@cluster0.atanct9.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0');
+    mongoose.connect('mongodb://localhost:27017/hospitalData');
     console.log('Connected to MongoDB');
 } catch (error) {
     console.error('Error connecting to MongoDB:', error);
 }
 
-const messageSchema = new Schema({
-    message: String
+// Define a schema for hospital-related data
+const hospitalSchema = new Schema({
+    patientName: String,
+    patientAge: Number,
+    diagnosis: String,
+    treatment: String,
+    admissionDate: Date,
+    dischargeDate: Date
 }, { collection: 'datas' }); // Specify the collection name here
 
-// Create a Mongoose model
-const Message = mongoose.model('Message', messageSchema);
+// Create a Mongoose model for hospital data
+const HospitalRecord = mongoose.model('HospitalRecord', hospitalSchema);
 
 // Event listener for new connections
 io.on('connection', (socket) => {
@@ -72,31 +71,46 @@ io.on('connection', (socket) => {
     });
 
     // Listen for synchronization button click
-    // socket.on('syncData', () => {
-    //     console.log('Inside syncData event listener'); // This line should be printed
-    //     // Query to fetch data from MySQL
-    //     const query = 'SELECT * FROM data';
+    socket.on('syncData', () => {
+        console.log('Inside syncData event listener'); // This line should be printed
+        // Query to fetch data from MySQL
+        const query = 'SELECT * FROM data';
 
-    //     // Execute the query
-    //     connection.query(query, (err, results) => {
-    //         if (err) {
-    //             console.error('Error retrieving data from MySQL:', err);
-    //             return;
-    //         }
-    //         const startTime = Date.now();
-    //         // Extract data from results
-    //         const data = results.map(row => row.message);
-    //         // Emit data to all clients
-    //         console.log('Synchronization data:', data);
-    //         io.emit('syncData', data);
-    //         const endTime = Date.now();
-    //         const syncTime = endTime - startTime;
-    //         console.log('Synchronization time from MySql:', syncTime, 'ms');
+        // Execute the query
+        connection.query(query, (err, results) => {
+            if (err) {
+                console.error('Error retrieving data from MySQL:', err);
+                return;
+            }
+            const startTime = Date.now();
+            // Extract data from results
+            const data = results.map(row => ({
+                id:row.id,
+                patientName: row.patientName,
+                patientAge: row.patientAge,
+                diagnosis: row.diagnosis,
+                treatment: row.treatment,
+                admissionDate: row.admissionDate,
+                dischargeDate: row.dischargeDate
+            }));
+            // Emit data to all clients
+            //console.log('Synchronization data:', data);
+            io.emit('syncData', data);
+            const endTime = Date.now();
+            const syncTime = endTime - startTime;
+            console.log('Synchronization time from MySql:', syncTime, 'ms');
 
-    //         // Send synchronization time back to the host
-    //         io.to(socket.id).emit('syncTime', syncTime);
-    //     });
-    // });
+            // Calculate synchronization speed
+            const dataSize = JSON.stringify(data).length; // Calculate data size in bytes
+            const syncSpeed = dataSize / (syncTime / 1000); // Calculate speed in bytes per second
+
+            // Send synchronization time and speed back to the host
+            io.to(socket.id).emit('syncSpeed',  syncSpeed );
+            // Send synchronization time back to the host
+            io.to(socket.id).emit('syncTime', syncTime);
+            io.to(socket.id).emit('dataSize', dataSize);
+        });
+    });
 
 
 
@@ -110,31 +124,51 @@ io.on('connection', (socket) => {
             return;
         }
         
-        // Find all documents in the collection and emit data to clients
-        Message.find({})
-            .then(documents => {
-                const startTime = Date.now();
-                const data = documents.map(doc => doc.message);
-                console.log('Synchronization data (MongoDB):', data);
-                io.emit('syncDataMongo', data);
-                const endTime = Date.now();
-                const syncTime = endTime - startTime;
-                console.log('Synchronization time from MongoDB:', syncTime, 'ms');
-                io.to(socket.id).emit('syncTimeMongo', syncTime);
-            })
-            .catch(err => {
-                console.error('Error retrieving data from MongoDB:', err);
-            });
+        HospitalRecord.find({})
+    .then(documents => {
+        const startTime = Date.now();
+        // Extracting data from documents
+        const data = documents.map(doc => ({
+            patientName: doc.patientName,
+            patientAge: doc.patientAge,
+            diagnosis: doc.diagnosis,
+            treatment: doc.treatment,
+            admissionDate: doc.admissionDate,
+            dischargeDate: doc.dischargeDate
+        }));
+       // console.log('Synchronization data (MongoDB):', data);
+        io.emit('syncDataMongo', data);
+        const endTime = Date.now();
+        const syncTime = endTime - startTime;
+        console.log('Synchronization time from MongoDB:', syncTime, 'ms');
+
+        // Calculate synchronization speed
+        const dataSize = JSON.stringify(data).length; // Calculate data size in bytes
+        const syncSpeed = dataSize / (syncTime / 1000); // Calculate speed in bytes per second
+
+        // Send synchronization time and speed back to the host
+        io.to(socket.id).emit('syncSpeed', syncSpeed);
+        io.to(socket.id).emit('syncTimeMongo', syncTime);
+        io.to(socket.id).emit('dataSize', dataSize);
+    })
+    .catch(err => {
+        console.error('Error retrieving data from MongoDB:', err);
+    });
     });
 
-    
+    socket.on('message', (message) => {
+        const startTime = Date.now();
+        socket.broadcast.emit('message', message);
+        const endTime = Date.now();
+        const syncTime = endTime-startTime;
 
-
-
-
-
-
-
+        const dataSize = message.length; // Calculate data size in bytes
+        const syncSpeed = dataSize / (syncTime / 1000); 
+        io.to(socket.id).emit('syncSpeed',  syncSpeed );
+        io.to(socket.id).emit('syncTime', syncTime);
+        io.to(socket.id).emit('dataSize', dataSize);
+        io.to(socket.id).emit('syncInfo', { clients: Object.keys(clients).length });
+    });
 
 });
 
@@ -152,14 +186,15 @@ app.get('/hostMongoDb', (req, res) => {
     res.sendFile(__dirname + '/hostMongoDb.html');
 });
 
-// Serve client.html for clients
-app.get('/clientMysql', (req, res) => {
-    res.sendFile(__dirname + '/clientMysql.html');
+app.get('/hostInput', (req, res) => {
+    res.sendFile(__dirname + '/hostinputText.html');
 });
 
+
+
 // Serve client.html for clients
-app.get('/clientMongoDb', (req, res) => {
-    res.sendFile(__dirname + '/clientMongoDb.html');
+app.get('/client', (req, res) => {
+    res.sendFile(__dirname + '/client.html');
 });
 
 // Start the server
