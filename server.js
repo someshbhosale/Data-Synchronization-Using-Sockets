@@ -54,6 +54,18 @@ const hospitalSchema = new Schema({
 // Create a Mongoose model for hospital data
 const HospitalRecord = mongoose.model('HospitalRecord', hospitalSchema);
 
+const uploadData = new Schema({
+    patientName: String,
+    patientAge: Number,
+    diagnosis: String,
+    treatment: String,
+    admissionDate: Date,
+    dischargeDate: Date
+}, { collection: 'uploadData' }); // Specify the collection name here
+
+
+const uploadRecord = mongoose.model('uploadRecord', uploadData);
+
 // Event listener for new connections
 io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
@@ -109,6 +121,8 @@ io.on('connection', (socket) => {
             // Send synchronization time back to the host
             io.to(socket.id).emit('syncTime', syncTime);
             io.to(socket.id).emit('dataSize', dataSize);
+            io.to(socket.id).emit('startTime',  startTime);
+            io.to(socket.id).emit('endTime',  endTime);
         });
     });
 
@@ -150,11 +164,60 @@ io.on('connection', (socket) => {
         io.to(socket.id).emit('syncSpeed', syncSpeed);
         io.to(socket.id).emit('syncTimeMongo', syncTime);
         io.to(socket.id).emit('dataSize', dataSize);
+        io.to(socket.id).emit('startTime',  startTime);
+        io.to(socket.id).emit('endTime',  endTime);
     })
     .catch(err => {
         console.error('Error retrieving data from MongoDB:', err);
     });
     });
+
+    
+    
+// Event listener for fileData event
+socket.on('fileData', function (fileData) {
+    console.log('Received file data:', fileData);
+    const startTime = Date.now();
+    try {
+        const jsonData = JSON.parse(fileData);
+
+        // Check if jsonData is an array
+        if (Array.isArray(jsonData)) {
+            // Iterate over each document in the array
+            jsonData.forEach(document => {
+                // Save each document to the 'uploadData' collection in MongoDB
+                const newRecord = new uploadRecord(document);
+                newRecord.save()
+                    .then(() => {
+                        console.log('JSON document saved to MongoDB collection');
+                        // Emit the saved JSON document to all clients
+                    })
+                    .catch(error => {
+                        console.error('Error saving JSON document to MongoDB:', error);
+                    });
+            });
+        } else {
+            console.error('Invalid JSON data format: Expected an array');
+        }
+    } catch (error) {
+        console.error('Error parsing JSON data:', error);
+    }
+
+    // Broadcast the file data to all clients
+    
+    io.emit('fileData', fileData);
+    const endTime = Date.now();
+    const syncTime = endTime - startTime;
+    const dataSize = fileData.length; // Calculate data size in bytes
+    const syncSpeed = dataSize / (syncTime / 1000);
+    io.to(socket.id).emit('syncSpeed', syncSpeed);
+    io.to(socket.id).emit('syncTime', syncTime);
+    io.to(socket.id).emit('dataSize', dataSize);
+    io.to(socket.id).emit('startTime',  startTime);
+    io.to(socket.id).emit('endTime',  endTime);
+});
+
+
 
     socket.on('message', (message) => {
         const startTime = Date.now();
@@ -168,6 +231,8 @@ io.on('connection', (socket) => {
         io.to(socket.id).emit('syncTime', syncTime);
         io.to(socket.id).emit('dataSize', dataSize);
         io.to(socket.id).emit('syncInfo', { clients: Object.keys(clients).length });
+        io.to(socket.id).emit('startTime',  startTime);
+        io.to(socket.id).emit('endTime',  endTime);
     });
 
 });
@@ -179,22 +244,26 @@ function updateClients() {
 }
 // Serve host.html for the host
 app.get('/hostMysql', (req, res) => {
-    res.sendFile(__dirname + '/hostMysql.html');
+    res.sendFile(__dirname + '/templates/hostMysql.html');
 });
 
 app.get('/hostMongoDb', (req, res) => {
-    res.sendFile(__dirname + '/hostMongoDb.html');
+    res.sendFile(__dirname + '/templates/hostMongoDb.html');
 });
 
 app.get('/hostInput', (req, res) => {
-    res.sendFile(__dirname + '/hostinputText.html');
+    res.sendFile(__dirname + '/templates/hostinputText.html');
+});
+
+app.get('/hostUploadFile', (req, res) => {
+    res.sendFile(__dirname + '/templates/hostUploadFile.html');
 });
 
 
 
 // Serve client.html for clients
 app.get('/client', (req, res) => {
-    res.sendFile(__dirname + '/client.html');
+    res.sendFile(__dirname + '/templates/client.html');
 });
 
 // Start the server

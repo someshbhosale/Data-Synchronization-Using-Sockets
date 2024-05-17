@@ -1,0 +1,18 @@
+[
+  {
+    "patientName": "Ravi Kumar",
+    "patientAge": 45,
+    "diagnosis": "Pneumonia",
+    "treatment": "Antibiotics and rest",
+    "admissionDate": "2024-04-28T08:00:00.000Z",
+    "dischargeDate": "2024-05-05T10:00:00.000Z"
+  },
+  {
+    "patientName": "Priya Sharma",
+    "patientAge": 35,
+    "diagnosis": "Fractured leg",
+    "treatment": "Leg cast",
+    "admissionDate": "2024-05-10T09:00:00.000Z",
+    "dischargeDate": "2024-05-17T11:00:00.000Z"
+  }
+]

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Host | MySQL</title>
+    <title>Host | Upload File</title>
     
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
@@ -45,9 +45,12 @@
             <div class="col-md-8 form-container">
                 <!-- Synchronize button -->
                 <div class="card mt-3">
-                    <div class="card-header">Synchronize Data with Clients(MySQL)</div>
+                    <div class="card-header">Synchronize Data with Upload File</div>
                     <div class="card-body">
-                        <button id="syncButton" class="btn btn-primary">Synchronize</button>
+                        <input type="file" id="fileInput" class="form-control-file mt-3">
+                        <button id="syncButton" class="btn btn-primary mt-3">Synchronize</button>
+                        <p id="syncTimeDisplay">Start Time:<b> <span id="startTime"></span></b></p>
+                            <p id="syncTimeDisplay">End Time:<b> <span id="endTime"></span></b></p>
                         <p id="syncTimeDisplay">Synchronization Time:<b> <span id="syncTime">0</span> ms</b></p>
                         <p id="syncSpeedDisplay">Synchronization Speed:<b> <span id="syncSpeed">0</span> bytes/s</b></p>
                         <p id="dataSizeDisplay">Data Size:<b> <span id="dataSize">0</span> kb</b></p>
@@ -84,6 +87,28 @@
     <script>
         $(document).ready(function () {
             const socket = io();
+
+            $('#syncButton').click(function () {
+    // Check if a file is selected
+    if ($('#fileInput')[0].files.length === 0) {
+        alert("No file selected.");
+        return;
+    }
+
+    const file = $('#fileInput')[0].files[0];
+    const reader = new FileReader();
+
+    reader.onload = function (event) {
+        const fileData = event.target.result;
+        console.log('File data:', fileData);
+        socket.emit('fileData', fileData); // Emit file data to the server
+    };
+
+    // Read the selected file as text
+    reader.readAsText(file);
+});
+
+            
 
             // Initialize chart for synchronization time vs number of clients
             const syncTimeVsClientsChart = new Chart($('#syncTimeVsClientsChart'), {
@@ -130,13 +155,7 @@
                 });
             }
 
-            // Event listener for synchronization button
-            $('#syncButton').click(function () {
-                console.log('Button clicked - emitting syncData event');
-                // Emit an event to synchronize data with clients
-                socket.emit('syncData');
-            });
-
+            
             // Listen for synchronization time from the server
             socket.on('syncTime', function (syncTime) {
                 console.log('inside syncTime');
@@ -151,6 +170,24 @@
             socket.on('dataSize', function (syncSpeed) {
                 // Display synchronization speed
                 $('#dataSize').text(syncSpeed.toFixed(2));
+            });
+
+            socket.on('startTime', function (startTime) {
+                const startDate = new Date(startTime);
+
+                // Format the Date object to a human-readable string
+                const formattedTime = startDate.toLocaleString();
+                $('#startTime').text(formattedTime);
+            });
+            socket.on('endTime', function (endTime) {
+                // Convert the timestamp to a Date object
+                const endDate = new Date(endTime);
+
+                // Format the Date object to a human-readable string
+                const formattedTime = endDate.toLocaleString(); // You can customize the format as needed
+
+                // Display the formatted synchronization end time
+                $('#endTime').text(formattedTime);
             });
 
             // Listen for client list updates

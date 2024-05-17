@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Client</title>
+
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+    <style>
+        .data-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.data-cell {
+    border: 1px solid black;
+    padding: 8px;
+}
+
+.data-row:nth-child(even) {
+    background-color: #f2f2f2;
+}
+      .data-card {
+        margin-bottom: 20px;
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #f9f9f9;
+      }
+      .data-card pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+      body {
+        padding: 20px;
+        background: rgba(235, 233, 233, 0.9) no-repeat center center fixed;
+        background-size: cover;
+      }
+
+      .form-container {
+        max-width: 500px;
+        margin: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Added Bootstrap container -->
+      <div class="row justify-content-center">
+        <div class="col-md-8">
+          <div class="container">
+            <h4 class="text-center">Realtime Synchronized Data from Server</h4>
+            <div id="messageContainer" class="data-table"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Link directly to the Socket.IO CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.2.0/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+      $(document).ready(function () {
+        const socket = io();
+
+        // Function to append messages to the message container
+        function appendMessage(message) {
+          $("#messageContainer").append(
+            '<div class="data-card"><p>' + message + "</p></div>"
+          );
+        }
+
+        // Listen for incoming messages from the server
+        socket.on("syncData", function (data) {
+          console.log("Received syncedData:", data); // Log the received data
+          // Append each message to the message container
+          data.forEach((message) => {
+            const messageContainer = $("#messageContainer");
+            const messageCard = $('<div class="data-card"></div>');
+
+            // Iterate over each key-value pair in the message object
+            Object.keys(message).forEach((key) => {
+              const keyValueElement = $("<p></p>").text(
+                `${key}: ${message[key]}`
+              );
+              messageCard.append(keyValueElement);
+              messageContainer.append(messageCard);
+            });
+          });
+        });
+
+        // Listen for incoming messages from the server
+        socket.on("syncDataMongo", function (data) {
+          console.log("Received syncedDataMongo:", data); // Log the received data
+
+          // Clear existing content in the message container
+          //$("#messageContainer").empty();
+
+          // Create a table element
+          const table = $('<table class="table"></table>');
+
+          // Create table header row
+          const headerRow = $("<tr></tr>");
+          Object.keys(data[0]).forEach((key) => {
+            headerRow.append(`<th>${key}</th>`);
+          });
+          table.append(headerRow);
+
+          // Create table body rows
+          data.forEach((message) => {
+            const row = $("<tr></tr>");
+            Object.values(message).forEach((value) => {
+              row.append(`<td>${value}</td>`);
+            });
+            table.append(row);
+          });
+
+          // Append the table to the message container
+          $("#messageContainer").append(table);
+        });
+
+        //file upload data
+        socket.on('fileData', function (data) {
+    console.log('Received File upload data is:', data); // Log the received data
+    
+    // Parse the string data into JSON format
+    try {
+        const jsonData = JSON.parse(data);
+        
+        // Assuming you have a container element with the ID "messageContainer"
+        const messageContainer = $('#messageContainer');
+        
+        // Check if jsonData is an array
+        if (Array.isArray(jsonData)) {
+            // Loop through each object in the array
+            jsonData.forEach((message) => {
+                const messageCard = $('<div class="data-card"></div>');
+                
+                // Iterate over each key-value pair in the message object
+                Object.keys(message).forEach((key) => {
+                    const keyValueElement = $('<p></p>').text(`${key}: ${message[key]}`);
+                    messageCard.append(keyValueElement);
+                });
+                
+                // Append the message card to the message container
+                messageContainer.append(messageCard);
+            });
+        } else {
+            // If jsonData is not an array, log it as a single object
+            console.log('Received File upload data is not an array:', jsonData);
+        }
+    } catch (error) {
+        //console.error('Error parsing JSON data:', error);
+       // Assuming you have a container element with the ID "messageContainer"
+       const messageContainer = $('#messageContainer');
+        
+        // Split the data into lines
+        const lines = data.split('\n');
+        
+        // Create a table element
+        const table = $('<table></table>').addClass('data-table');
+        
+        // Iterate over each line of the data
+        lines.forEach((line) => {
+            // Split each line into fields
+            const fields = line.trim().split(/\s+/);
+
+            
+            // Create a table row for each line
+            const row = $('<tr></tr>').addClass('data-row');
+            
+            // Iterate over each field and create a table cell
+            fields.forEach((field) => {
+                const cell = $('<td></td>').addClass('data-cell').text(field);
+                row.append(cell);
+            });
+            
+            // Append the row to the table
+            table.append(row);
+        });
+        
+        // Append the table to the message container
+        messageContainer.append(table);
+    }
+});
+
+
+
+
+        socket.on("message", function (message) {
+          appendMessage(message);
+        });
+      });
+    </script>
+  </body>
+</html>
